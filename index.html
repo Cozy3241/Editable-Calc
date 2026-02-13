@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>棚卸・連動型計算機</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --panel-bg: #ffffff;
+            --primary-color: #2980b9;
+            --accent-color: #e67e22;
+            --sub-text: #7f8c8d;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Sans-Serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 履歴表示エリア */
+        #history-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px;
+            background: var(--panel-bg);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .history-item {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .line-num {
+            width: 25px;
+            color: #ccc;
+            font-size: 0.7rem;
+        }
+
+        /* 入力した数式部分 */
+        .formula {
+            flex: 2;
+            font-family: monospace;
+            font-size: 1.2rem;
+            background: #fdfdfd;
+            border: 1px dashed #ccc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            min-width: 50px;
+        }
+
+        .formula:focus {
+            outline: 2px solid var(--primary-color);
+            background: #fff;
+        }
+
+        /* その行だけの計算結果 */
+        .line-subtotal {
+            flex: 1;
+            text-align: right;
+            font-size: 0.9rem;
+            color: var(--sub-text);
+            margin-right: 10px;
+        }
+
+        /* 累計結果 */
+        .total-val {
+            flex: 1.2;
+            text-align: right;
+            font-weight: bold;
+            font-size: 1.3rem;
+            color: var(--primary-color);
+        }
+
+        .total-label {
+            font-size: 0.6rem;
+            display: block;
+            color: var(--sub-text);
+        }
+
+        /* 入力表示エリア */
+        #display {
+            background: #333;
+            color: white;
+            padding: 12px 15px;
+            text-align: right;
+            font-size: 1.4rem;
+            min-height: 1.4rem;
+        }
+
+        /* キーパッド */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border-color);
+        }
+
+        button {
+            border: none;
+            padding: 18px 0;
+            font-size: 1.4rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        button:active { background: #eee; }
+
+        .btn-op { background: #f8f9fa; color: var(--accent-color); font-weight: bold; }
+        .btn-ent { background: var(--primary-color); color: white; grid-column: span 2; }
+        .btn-clr { background: #e74c3c; color: white; }
+
+        .header-guide {
+            font-size: 0.7rem;
+            background: #2c3e50;
+            color: white;
+            padding: 4px;
+            display: flex;
+            justify-content: space-around;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-guide">
+        <span>[行: 数式]</span>
+        <span>[単体結果]</span>
+        <span>[累計]</span>
+    </div>
+    
+    <div id="history-container">
+        <!-- 履歴がここに追加される -->
+    </div>
+
+    <div id="display">0</div>
+
+    <div class="keypad">
+        <button onclick="append('7')">7</button>
+        <button onclick="append('8')">8</button>
+        <button onclick="append('9')">9</button>
+        <button class="btn-op" onclick="append('÷')">÷</button>
+
+        <button onclick="append('4')">4</button>
+        <button onclick="append('5')">5</button>
+        <button onclick="append('6')">6</button>
+        <button class="btn-op" onclick="append('×')">×</button>
+
+        <button onclick="append('1')">1</button>
+        <button onclick="append('2')">2</button>
+        <button onclick="append('3')">3</button>
+        <button class="btn-op" onclick="append('-')">-</button>
+
+        <button onclick="append('0')">0</button>
+        <button onclick="append('.')">.</button>
+        <button class="btn-clr" onclick="clearDisplay()">C</button>
+        <button class="btn-op" onclick="append('+')">+</button>
+
+        <button class="btn-ent" onclick="commit()">ENTER (改行追加)</button>
+        <button onclick="backspace()">⌫</button>
+        <button onclick="resetAll()" style="font-size: 0.7rem; background: #ddd;">全消去</button>
+    </div>
+
+    <script>
+        let history = []; // { formula: string, lineResult: 0, total: 0 }
+        let currentInput = "";
+
+        const displayEl = document.getElementById('display');
+        const historyContainer = document.getElementById('history-container');
+
+        function updateDisplay() {
+            displayEl.innerText = currentInput || "0";
+        }
+
+        function append(char) {
+            currentInput += char;
+            updateDisplay();
+        }
+
+        function clearDisplay() {
+            currentInput = "";
+            updateDisplay();
+        }
+
+        function backspace() {
+            currentInput = currentInput.slice(0, -1);
+            updateDisplay();
+        }
+
+        function resetAll() {
+            if(confirm("全ての履歴を消去しますか？")) {
+                history = [];
+                currentInput = "";
+                renderHistory();
+                updateDisplay();
+            }
+        }
+
+        function commit() {
+            if (!currentInput) return;
+            history.push({ formula: currentInput, lineResult: 0, total: 0 });
+            currentInput = "";
+            recalculate();
+            updateDisplay();
+            setTimeout(() => { historyContainer.scrollTop = historyContainer.scrollHeight; }, 10);
+        }
+
+        // 連動計算ロジック
+        function recalculate() {
+            let runningTotal = 0;
+
+            history = history.map((item, index) => {
+                const rawFormula = item.formula.replace(/×/g, '*').replace(/÷/g, '/');
+                let lineVal = 0; // その行単体の結果
+                let newTotal = 0; // 累計結果
+
+                try {
+                    // 1. その行単体の計算結果を求める
+                    // 演算子で始まっている場合は、演算子を除いて計算 (例: "+10*2" -> 20)
+                    let cleanLineFormula = rawFormula;
+                    if (['+', '-', '*', '/'].includes(rawFormula[0])) {
+                        cleanLineFormula = rawFormula.substring(1);
+                    }
+                    lineVal = eval(cleanLineFormula) || 0;
+
+                    // 2. 累計を求める
+                    if (index === 0) {
+                        // 1行目は単体結果がそのまま累計
+                        newTotal = eval(rawFormula);
+                        lineVal = newTotal; // 1行目は単体＝累計
+                    } else {
+                        // 2行目以降：前の累計に対して演算を適用
+                        let operator = rawFormula[0];
+                        // 演算子がなければデフォルトで足し算
+                        if (!['+', '-', '*', '/'].includes(operator)) {
+                            operator = '+';
+                        }
+                        newTotal = eval(`${runningTotal} ${operator} (${cleanLineFormula})`);
+                    }
+                } catch (e) {
+                    console.error("Calculation Error", e);
+                    newTotal = runningTotal;
+                }
+                
+                runningTotal = newTotal;
+                return { formula: item.formula, lineResult: lineVal, total: newTotal };
+            });
+
+            renderHistory();
+        }
+
+        function renderHistory() {
+            historyContainer.innerHTML = "";
+            history.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                
+                div.innerHTML = `
+                    <div class="item-row">
+                        <div class="line-num">${index + 1}</div>
+                        <div class="formula" contenteditable="true" inputmode="decimal" onblur="editFormula(${index}, this.innerText)">
+                            ${item.formula}
+                        </div>
+                        <div class="line-subtotal">
+                            <span style="font-size:0.6rem; display:block;">行計</span>
+                            ${item.lineResult.toLocaleString()}
+                        </div>
+                        <div class="total-val">
+                            <span class="total-label">累計</span>
+                            ${item.total.toLocaleString()}
+                        </div>
+                    </div>
+                `;
+                historyContainer.appendChild(div);
+            });
+        }
+
+        function editFormula(index, newFormula) {
+            // 改行が含まれる場合を除去
+            const cleanFormula = newFormula.replace(/\n/g, '').trim();
+            history[index].formula = cleanFormula;
+            recalculate();
+        }
+
+        updateDisplay();
+    </script>
+</body>
+</html>
