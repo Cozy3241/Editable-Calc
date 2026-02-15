@@ -3,181 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>棚卸計算機 - フタバロジコム</title>
+    <title>棚卸計算機 - Botanical Pro</title>
+    <!-- 視認性の高い丸ゴシック -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #f4f7f6;
-            --panel-bg: #ffffff;
-            --primary-color: #2980b9;
-            --accent-color: #e67e22;
-            --sub-text: #7f8c8d;
-            --border-color: #ddd;
+            --color-1: #A9C0A6; /* セージ */
+            --color-2: #F5EDE3; /* クリーム（背景） */
+            --color-3: #707862; /* オリーブ（アクセント） */
+            --color-4: #DDD5CC; /* グレージュ（表示エリア） */
+            --color-5: #C5D3C4; /* 薄セージ（ボタン） */
+            --text-main: #303030;
+            --white: #ffffff;
         }
 
-        * { box-sizing: border-box; }
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            font-weight: 900;
+            color: var(--text-main);
+        }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Sans-Serif;
-            background-color: var(--bg-color);
+            background-color: var(--color-2);
             margin: 0;
-            /* 画面の高さを動的に取得し、はみ出しを防ぐ */
             height: 100vh;
             height: 100dvh; 
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            /* iPhoneのノッチ/下部バー対策 */
             padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* ヘッダーガイド */
-        .header-guide {
-            font-size: 0.7rem;
-            background: #2c3e50;
-            color: white;
-            padding: 6px;
+        /* ヘッダー */
+        .header {
+            background: var(--color-3);
+            color: var(--color-2);
+            padding: 10px 15px;
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between;
+            align-items: center;
             flex-shrink: 0;
         }
 
-        /* 履歴表示エリア（ここだけスクロール） */
+        .header div { color: var(--color-2); font-size: 1.1rem; }
+
+        .header-btns button {
+            background: var(--color-2);
+            color: var(--color-3);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+
+        /* 履歴表示エリア */
         #history-container {
             flex: 1;
             overflow-y: auto;
-            padding: 5px;
-            background: var(--panel-bg);
-            -webkit-overflow-scrolling: touch;
+            background: var(--color-2);
         }
 
         .history-item {
             display: flex;
-            flex-direction: column;
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .item-row {
-            display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 5px;
+            padding: 12px 10px;
+            border-bottom: 2px solid var(--color-4);
+            gap: 8px;
+            background: rgba(255,255,255,0.4);
         }
 
-        .line-num { width: 20px; color: #ccc; font-size: 0.6rem; }
+        .line-num { width: 25px; color: var(--color-1); font-size: 0.8rem; text-align: center; }
 
         .formula {
-            flex: 2;
-            font-family: monospace;
-            font-size: 1.1rem;
-            background: #fdfdfd;
-            border: 1px dashed #ccc;
-            padding: 6px;
-            border-radius: 4px;
+            flex: 1;
+            font-size: 1.5rem;
+            background: var(--white);
+            border: 2px solid var(--color-1);
+            padding: 8px 12px;
+            border-radius: 10px;
             min-width: 0;
-            word-break: break-all;
+            outline: none;
         }
 
-        .line-subtotal {
-            width: 70px;
-            text-align: right;
-            font-size: 0.8rem;
-            color: var(--sub-text);
+        .line-results {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            min-width: 100px;
         }
 
-        .total-val {
-            width: 80px;
-            text-align: right;
-            font-weight: bold;
-            font-size: 1.1rem;
-            color: var(--primary-color);
+        .line-subtotal { font-size: 0.8rem; color: var(--color-3); opacity: 0.8; }
+        .total-val { font-size: 1.2rem; color: var(--color-3); }
+        .unit { font-size: 0.6rem; margin-left: 2px; }
+
+        .btn-del-row {
+            color: var(--color-1);
+            background: none;
+            border: none;
+            padding: 5px;
+            font-size: 1.5rem;
         }
 
-        .total-label { font-size: 0.5rem; display: block; color: var(--sub-text); }
-
-        /* 入力中エリア */
+        /* 入力表示エリア */
         #display-container {
-            background: #333;
-            color: white;
-            padding: 10px 15px;
+            background: var(--color-4);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             flex-shrink: 0;
+            border-top: 2px solid var(--color-1);
         }
-        #display {
-            text-align: right;
-            font-size: 1.4rem;
-            min-height: 1.6rem;
-            overflow: hidden;
-        }
+        #display { font-size: 2.2rem; }
+        .display-label { font-size: 0.8rem; opacity: 0.7; }
 
         /* キーパッド */
         .keypad {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 1px;
-            background: var(--border-color);
-            flex-shrink: 0; /* キーパッドが潰れないように固定 */
+            gap: 4px;
+            background: var(--color-1);
+            flex-shrink: 0;
+            padding: 4px;
         }
 
-        button {
+        button.key {
             border: none;
-            /* 画面の高さに合わせてボタンの大きさを調整 */
-            padding: 15px 0;
-            font-size: 1.3rem;
-            background: white;
+            padding: 18px 0;
+            font-size: 1.8rem;
+            background: var(--white);
+            border-radius: 8px;
             cursor: pointer;
-            outline: none;
-            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.1);
         }
 
-        button:active { background: #eee; }
+        button.key:active { 
+            background: var(--color-4); 
+            transform: translateY(2px);
+            box-shadow: none;
+        }
 
-        .btn-op { background: #f8f9fa; color: var(--accent-color); font-weight: bold; }
-        .btn-ent { background: var(--primary-color); color: white; grid-column: span 2; font-weight: bold; }
-        .btn-clr { background: #e74c3c; color: white; }
-        .btn-util { background: #eee; font-size: 0.8rem; }
+        /* 特殊ボタン設定 */
+        .btn-op { background: var(--color-5); }
+        
+        /* C と ENTER は同じ色（濃いオリーブにクリーム文字） */
+        .btn-clr, .btn-ent { 
+            background: var(--color-3) !important; 
+        }
+        .btn-clr, .btn-ent { color: var(--color-2) !important; }
+
+        .btn-ent { 
+            grid-column: span 2; 
+            font-size: 1.6rem;
+        }
+
+        .btn-util { background: var(--color-5); }
+        
+        /* 縦長プラスボタン */
+        .btn-plus-tall { 
+            grid-row: span 2; 
+            background: var(--color-1) !important; 
+            color: var(--white) !important;
+            font-size: 2.5rem;
+        }
 
     </style>
 </head>
 <body>
 
-    <div class="header-guide">
-        <span>[行: 数式]</span>
-        <span>[行計]</span>
-        <span>[累計]</span>
+    <div class="header">
+        <div>棚卸計算機</div>
+        <div class="header-btns">
+            <button onclick="exportCSV()">保存</button>
+            <button onclick="resetAll()">消去</button>
+        </div>
     </div>
     
-    <div id="history-container">
-        <!-- 履歴がここに追加される -->
-    </div>
+    <div id="history-container"></div>
 
     <div id="display-container">
+        <span class="display-label">入力中</span>
         <div id="display">0</div>
     </div>
 
     <div class="keypad">
-        <button onclick="append('7')">7</button>
-        <button onclick="append('8')">8</button>
-        <button onclick="append('9')">9</button>
-        <button class="btn-op" onclick="append('÷')">÷</button>
+        <button class="key" onclick="append('7')">7</button>
+        <button class="key" onclick="append('8')">8</button>
+        <button class="key" onclick="append('9')">9</button>
+        <button class="key btn-op" onclick="append('÷')">÷</button>
 
-        <button onclick="append('4')">4</button>
-        <button onclick="append('5')">5</button>
-        <button onclick="append('6')">6</button>
-        <button class="btn-op" onclick="append('×')">×</button>
+        <button class="key" onclick="append('4')">4</button>
+        <button class="key" onclick="append('5')">5</button>
+        <button class="key" onclick="append('6')">6</button>
+        <button class="key btn-op" onclick="append('×')">×</button>
 
-        <button onclick="append('1')">1</button>
-        <button onclick="append('2')">2</button>
-        <button onclick="append('3')">3</button>
-        <button class="btn-op" onclick="append('-')">-</button>
+        <button class="key" onclick="append('1')">1</button>
+        <button class="key" onclick="append('2')">2</button>
+        <button class="key" onclick="append('3')">3</button>
+        <button class="key btn-op" onclick="append('-')">-</button>
 
-        <button onclick="append('0')">0</button>
-        <button onclick="append('.')">.</button>
-        <button class="btn-clr" onclick="clearDisplay()">C</button>
-        <button class="btn-op" onclick="append('+')">+</button>
+        <button class="key" onclick="append('0')">0</button>
+        <button class="key" onclick="append('00')">00</button>
+        <button class="key btn-clr" onclick="clearDisplay()">C</button>
+        <button class="key btn-plus-tall" onclick="append('+')">+</button>
 
-        <button class="btn-ent" onclick="commit()">ENTER</button>
-        <button class="btn-util" onclick="backspace()">⌫</button>
-        <button class="btn-util" onclick="resetAll()">全消去</button>
+        <button class="key btn-ent" onclick="commit()">ENTER</button>
+        <button class="key btn-util" onclick="backspace()">⌫</button>
     </div>
 
     <script>
@@ -187,11 +224,24 @@
         const displayEl = document.getElementById('display');
         const historyContainer = document.getElementById('history-container');
 
+        window.onload = () => {
+            const saved = localStorage.getItem('inventory_botanical_v1');
+            if (saved) {
+                history = JSON.parse(saved);
+                recalculate();
+            }
+        };
+
+        function saveData() {
+            localStorage.setItem('inventory_botanical_v1', JSON.stringify(history));
+        }
+
         function updateDisplay() {
             displayEl.innerText = currentInput || "0";
         }
 
         function append(char) {
+            if (currentInput === "0" && (char === "0" || char === "00")) return;
             currentInput += char;
             updateDisplay();
         }
@@ -207,62 +257,56 @@
         }
 
         function resetAll() {
-            if(confirm("全ての履歴を消去しますか？")) {
+            if(confirm("全てのデータを消去しますか？")) {
                 history = [];
                 currentInput = "";
+                saveData();
                 renderHistory();
                 updateDisplay();
             }
         }
 
+        function deleteRow(index) {
+            history.splice(index, 1);
+            recalculate();
+        }
+
         function commit() {
             if (!currentInput) return;
-            history.push({ formula: currentInput, lineResult: 0, total: 0 });
+            history.push({ formula: currentInput });
             currentInput = "";
             recalculate();
             updateDisplay();
-            // 入力後に一番下までスクロール
+            
             setTimeout(() => { 
-                historyContainer.scrollTo({
-                    top: historyContainer.scrollHeight,
-                    behavior: 'smooth'
-                });
-            }, 50);
+                historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
+            }, 100);
         }
 
         function recalculate() {
             let runningTotal = 0;
-
             history = history.map((item, index) => {
-                const rawFormula = item.formula.replace(/×/g, '*').replace(/÷/g, '/');
+                let formulaStr = item.formula.replace(/×/g, '*').replace(/÷/g, '/');
                 let lineVal = 0;
-                let newTotal = 0;
-
                 try {
-                    let cleanLineFormula = rawFormula;
-                    if (['+', '-', '*', '/'].includes(rawFormula[0])) {
-                        cleanLineFormula = rawFormula.substring(1);
-                    }
-                    lineVal = eval(cleanLineFormula) || 0;
-
                     if (index === 0) {
-                        newTotal = eval(rawFormula);
-                        lineVal = newTotal;
+                        let cleanFormula = formulaStr;
+                        if (['+','-','*','/'].includes(formulaStr[0])) cleanFormula = "0" + formulaStr;
+                        lineVal = eval(cleanFormula) || 0;
+                        runningTotal = lineVal;
                     } else {
-                        let operator = rawFormula[0];
-                        if (!['+', '-', '*', '/'].includes(operator)) {
-                            operator = '+';
+                        if (!['+','-','*','/'].includes(formulaStr[0])) {
+                            lineVal = eval(formulaStr) || 0;
+                            runningTotal += lineVal;
+                        } else {
+                            runningTotal = eval(`${runningTotal} ${formulaStr}`);
+                            lineVal = eval(formulaStr.substring(1)) * (formulaStr[0] === '-' ? -1 : 1);
                         }
-                        newTotal = eval(`${runningTotal} ${operator} (${cleanLineFormula})`);
                     }
-                } catch (e) {
-                    newTotal = runningTotal;
-                }
-                
-                runningTotal = newTotal;
-                return { formula: item.formula, lineResult: lineVal, total: newTotal };
+                } catch (e) { console.error(e); }
+                return { formula: item.formula, lineResult: lineVal, total: Math.round(runningTotal) };
             });
-
+            saveData();
             renderHistory();
         }
 
@@ -272,29 +316,42 @@
                 const div = document.createElement('div');
                 div.className = 'history-item';
                 div.innerHTML = `
-                    <div class="item-row">
-                        <div class="line-num">${index + 1}</div>
-                        <div class="formula" contenteditable="true" inputmode="decimal" onblur="editFormula(${index}, this.innerText)">
-                            ${item.formula}
-                        </div>
-                        <div class="line-subtotal">
-                            <span style="font-size:0.5rem; display:block;">行計</span>
-                            ${item.lineResult.toLocaleString()}
-                        </div>
-                        <div class="total-val">
-                            <span class="total-label">累計</span>
-                            ${item.total.toLocaleString()}
-                        </div>
+                    <div class="line-num">${index + 1}</div>
+                    <div class="formula" contenteditable="true" inputmode="numeric" onblur="editFormula(${index}, this.innerText)">${item.formula}</div>
+                    <div class="line-results">
+                        <div class="line-subtotal">${item.lineResult > 0 ? '+':''}${Math.round(item.lineResult).toLocaleString()}<span class="unit">行計</span></div>
+                        <div class="total-val">${item.total.toLocaleString()}<span class="unit">累計</span></div>
                     </div>
+                    <button class="btn-del-row" onclick="deleteRow(${index})">×</button>
                 `;
                 historyContainer.appendChild(div);
             });
         }
 
         function editFormula(index, newFormula) {
-            const cleanFormula = newFormula.replace(/\n/g, '').trim();
-            history[index].formula = cleanFormula;
-            recalculate();
+            const cleanFormula = newFormula.replace(/\s/g, '').replace(/\n/g, '');
+            if (cleanFormula === "") {
+                deleteRow(index);
+            } else {
+                history[index].formula = cleanFormula;
+                recalculate();
+            }
+        }
+
+        function exportCSV() {
+            if (history.length === 0) return;
+            let csvContent = "\uFEFFNo,数式,行計,累計\n";
+            history.forEach((item, index) => {
+                csvContent += `${index + 1},${item.formula},${item.lineResult},${item.total}\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `棚卸表_${new Date().toLocaleDateString()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         updateDisplay();
