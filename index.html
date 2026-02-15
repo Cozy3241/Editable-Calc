@@ -4,15 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>棚卸計算機 - Botanical Pro</title>
-    <!-- 視認性の高い丸ゴシック -->
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@900&display=swap" rel="stylesheet">
     <style>
         :root {
             --color-1: #A9C0A6; /* セージ */
-            --color-2: #F5EDE3; /* クリーム（背景） */
-            --color-3: #707862; /* オリーブ（アクセント） */
-            --color-4: #DDD5CC; /* グレージュ（表示エリア） */
-            --color-5: #C5D3C4; /* 薄セージ（ボタン） */
+            --color-2: #F5EDE3; /* クリーム */
+            --color-3: #707862; /* オリーブ */
+            --color-4: #DDD5CC; /* グレージュ */
+            --color-5: #C5D3C4; /* 薄セージ */
             --text-main: #303030;
             --white: #ffffff;
         }
@@ -39,24 +38,33 @@
         /* ヘッダー */
         .header {
             background: var(--color-3);
-            color: var(--color-2);
-            padding: 10px 15px;
+            padding: 8px 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
+            z-index: 100;
         }
 
-        .header div { color: var(--color-2); font-size: 1.1rem; }
+        .header-title {
+            color: var(--color-2);
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .header-btns {
+            display: flex;
+            gap: 4px;
+        }
 
         .header-btns button {
             background: var(--color-2);
             color: var(--color-3);
             border: none;
-            padding: 6px 12px;
+            padding: 8px 10px;
             border-radius: 6px;
-            font-size: 0.8rem;
-            margin-left: 5px;
+            font-size: 0.75rem;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.1);
         }
 
         /* 履歴表示エリア */
@@ -64,6 +72,7 @@
             flex: 1;
             overflow-y: auto;
             background: var(--color-2);
+            transition: all 0.3s ease; /* アニメーション */
         }
 
         .history-item {
@@ -107,14 +116,28 @@
             font-size: 1.5rem;
         }
 
-        /* 入力表示エリア */
+        /* 入力エリア全体のラッパー（表示・非表示の切り替え対象） */
+        #input-section {
+            transition: transform 0.3s ease, height 0.3s ease;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 非表示状態のスタイル */
+        .input-hidden {
+            transform: translateY(100%);
+            height: 0 !important;
+            overflow: hidden;
+        }
+
+        /* 入力中表示エリア */
         #display-container {
             background: var(--color-4);
-            padding: 15px 20px;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-shrink: 0;
             border-top: 2px solid var(--color-1);
         }
         #display { font-size: 2.2rem; }
@@ -126,7 +149,6 @@
             grid-template-columns: repeat(4, 1fr);
             gap: 4px;
             background: var(--color-1);
-            flex-shrink: 0;
             padding: 4px;
         }
 
@@ -136,7 +158,6 @@
             font-size: 1.8rem;
             background: var(--white);
             border-radius: 8px;
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -149,28 +170,16 @@
             box-shadow: none;
         }
 
-        /* 特殊ボタン設定 */
         .btn-op { background: var(--color-5); }
-        
-        /* C と ENTER は同じ色（濃いオリーブにクリーム文字） */
-        .btn-clr, .btn-ent { 
-            background: var(--color-3) !important; 
-        }
-        .btn-clr, .btn-ent { color: var(--color-2) !important; }
-
-        .btn-ent { 
-            grid-column: span 2; 
-            font-size: 1.6rem;
-        }
-
+        .btn-clr, .btn-ent { background: var(--color-3) !important; color: var(--color-2) !important; }
+        .btn-ent { grid-column: span 2; font-size: 1.6rem; }
         .btn-util { background: var(--color-5); }
-        
-        /* 縦長プラスボタン */
-        .btn-plus-tall { 
-            grid-row: span 2; 
-            background: var(--color-1) !important; 
+        .btn-plus-tall { grid-row: span 2; background: var(--color-1) !important; color: var(--white) !important; font-size: 2.5rem; }
+
+        /* モード切替ボタンの強調色 */
+        .mode-active {
+            background: var(--color-1) !important;
             color: var(--white) !important;
-            font-size: 2.5rem;
         }
 
     </style>
@@ -178,62 +187,84 @@
 <body>
 
     <div class="header">
-        <div>棚卸計算機</div>
+        <div class="header-title">棚卸計算機</div>
         <div class="header-btns">
             <button onclick="exportCSV()">保存</button>
             <button onclick="resetAll()">消去</button>
+            <button id="toggle-btn" onclick="toggleKeypad()" class="">履歴表示</button>
         </div>
     </div>
     
     <div id="history-container"></div>
 
-    <div id="display-container">
-        <span class="display-label">入力中</span>
-        <div id="display">0</div>
-    </div>
+    <div id="input-section">
+        <div id="display-container">
+            <span class="display-label">入力中</span>
+            <div id="display">0</div>
+        </div>
 
-    <div class="keypad">
-        <button class="key" onclick="append('7')">7</button>
-        <button class="key" onclick="append('8')">8</button>
-        <button class="key" onclick="append('9')">9</button>
-        <button class="key btn-op" onclick="append('÷')">÷</button>
+        <div class="keypad">
+            <button class="key" onclick="append('7')">7</button>
+            <button class="key" onclick="append('8')">8</button>
+            <button class="key" onclick="append('9')">9</button>
+            <button class="key btn-op" onclick="append('÷')">÷</button>
 
-        <button class="key" onclick="append('4')">4</button>
-        <button class="key" onclick="append('5')">5</button>
-        <button class="key" onclick="append('6')">6</button>
-        <button class="key btn-op" onclick="append('×')">×</button>
+            <button class="key" onclick="append('4')">4</button>
+            <button class="key" onclick="append('5')">5</button>
+            <button class="key" onclick="append('6')">6</button>
+            <button class="key btn-op" onclick="append('×')">×</button>
 
-        <button class="key" onclick="append('1')">1</button>
-        <button class="key" onclick="append('2')">2</button>
-        <button class="key" onclick="append('3')">3</button>
-        <button class="key btn-op" onclick="append('-')">-</button>
+            <button class="key" onclick="append('1')">1</button>
+            <button class="key" onclick="append('2')">2</button>
+            <button class="key" onclick="append('3')">3</button>
+            <button class="key btn-op" onclick="append('-')">-</button>
 
-        <button class="key" onclick="append('0')">0</button>
-        <button class="key" onclick="append('00')">00</button>
-        <button class="key btn-clr" onclick="clearDisplay()">C</button>
-        <button class="key btn-plus-tall" onclick="append('+')">+</button>
+            <button class="key" onclick="append('0')">0</button>
+            <button class="key" onclick="append('00')">00</button>
+            <button class="key btn-clr" onclick="clearDisplay()">C</button>
+            <button class="key btn-plus-tall" onclick="append('+')">+</button>
 
-        <button class="key btn-ent" onclick="commit()">ENTER</button>
-        <button class="key btn-util" onclick="backspace()">⌫</button>
+            <button class="key btn-ent" onclick="commit()">ENTER</button>
+            <button class="key btn-util" onclick="backspace()">⌫</button>
+        </div>
     </div>
 
     <script>
         let history = []; 
         let currentInput = "";
+        let isHistoryMode = false;
 
         const displayEl = document.getElementById('display');
         const historyContainer = document.getElementById('history-container');
+        const inputSection = document.getElementById('input-section');
+        const toggleBtn = document.getElementById('toggle-btn');
 
         window.onload = () => {
-            const saved = localStorage.getItem('inventory_botanical_v1');
+            const saved = localStorage.getItem('inventory_botanical_v2');
             if (saved) {
                 history = JSON.parse(saved);
                 recalculate();
             }
         };
 
+        // キーパッドの表示・非表示切り替え
+        function toggleKeypad() {
+            isHistoryMode = !isHistoryMode;
+            if (isHistoryMode) {
+                inputSection.classList.add('input-hidden');
+                toggleBtn.innerText = "入力に戻る";
+                toggleBtn.classList.add('mode-active');
+            } else {
+                inputSection.classList.remove('input-hidden');
+                toggleBtn.innerText = "履歴表示";
+                toggleBtn.classList.remove('mode-active');
+                // 入力に戻った時は一番下へスクロール
+                scrollToBottom();
+            }
+        }
+
         function saveData() {
-            localStorage.setItem('inventory_botanical_v1', JSON.stringify(history));
+            localStorage.setItem('inventory_botanical_v2', JSON.stringify(history));
         }
 
         function updateDisplay() {
@@ -277,7 +308,10 @@
             currentInput = "";
             recalculate();
             updateDisplay();
-            
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
             setTimeout(() => { 
                 historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
             }, 100);
